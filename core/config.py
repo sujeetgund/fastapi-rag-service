@@ -22,12 +22,12 @@ class Settings(BaseSettings):
 
     # Document Processing
     CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 200
+    CHUNK_OVERLAP: int = 400
     MAX_RELEVANT_CHUNKS: int = 5
 
     # Cache Configuration
-    ENABLE_CACHE: bool = False
-    CACHE_TTL: int = 60  # 1 hour
+    ENABLE_CACHE: bool = True
+    CACHE_TTL: int = 600  # 10 minutes
 
     class Config:
         env_file = ".env"

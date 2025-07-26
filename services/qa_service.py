@@ -1,7 +1,6 @@
 from typing import List
 import logging
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_community.vectorstores import FAISS
 from core.config import settings
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_docs(retrieved_docs):
-    context_text = "\n\n".join(doc.page_content for doc in retrieved_docs)
+    context_text = "\n---\n".join(doc.page_content for doc in retrieved_docs)
     return context_text
 
 
@@ -35,10 +34,7 @@ class QAService:
                 raise ValueError("GOOGLE_API_KEY is required")
 
             self.llm = ChatGoogleGenerativeAI(
-                model=settings.GOOGLE_MODEL_NAME,
-                google_api_key=settings.GOOGLE_API_KEY,
-                temperature=0.1,
-                convert_system_message_to_human=True,
+                model=settings.GOOGLE_MODEL_NAME, google_api_key=settings.GOOGLE_API_KEY
             )
 
             # Create QA prompt template
@@ -47,10 +43,11 @@ class QAService:
                 You are an expert AI assistant for answering questions about company policies. Your task is to answer the user's question using ONLY the provided policy document excerpts.
 
                 Follow these rules STRICTLY:
-                1.  Base your answer entirely on the text provided in the "Context" section.
-                2.  Do not make assumptions or infer information that is not explicitly stated in the context.
-                3.  If the context does not contain the answer to the question, you MUST state: "The provided policy documents do not contain information on this topic."
-                4.  Be concise and direct in your answer.
+                1. Base your answer entirely on the text provided in the "Context" section.
+                2. Do not make assumptions or infer information that is not explicitly stated in the context.
+                3. If the context does not contain the answer to the question, you MUST state: "The provided policy documents do not contain information on this topic."
+                4. Be concise and direct in your answer.
+                5. Don't include any additional information or explanations beyond the answer to the question.
 
                 Context:
                 ---
@@ -81,12 +78,12 @@ class QAService:
         try:
             # Create output parser
             parser = StrOutputParser()
-            
+
             # Create retriever from vector store
             retriever = vectorstore.as_retriever(
-                search_kwargs={"k": settings.MAX_RELEVANT_CHUNKS}, search_type="mmr"
+                search_type="mmr", search_kwargs={"k": 6, "lambda_mult": 0.25}
             )
-            
+
             # Create retrieval QA chain
             parallel_chain = RunnableParallel(
                 {
@@ -112,8 +109,8 @@ class QAService:
 
                 try:
                     # Get answer from QA chain
-                    result = await qa_chain.ainvoke({"query": question})
-                    answer = result["result"].strip()
+                    result = await qa_chain.ainvoke(question)
+                    answer = result
 
                     # Clean up the answer
                     if not answer:

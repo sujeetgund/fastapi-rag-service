@@ -9,3 +9,4 @@ langchain-community
 faiss-cpu
 python-multipart
 python-dotenv
+pypdf
