@@ -45,16 +45,17 @@ app = FastAPI(
     title="Document Q&A API with LangChain",
     description="API for answering questions based on document content using Google Generative AI",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    root_path="/api/v1"
 )
 
 # Include routers
-app.include_router(qa_router, prefix="/api/v1")
+app.include_router(qa_router)
 
 @app.get("/")
 async def root():
     return {
-        "message": "Document Q&A API with LangChain and Google AI",
+        "message": "RAG API for Hackrx",
         "version": "1.0.0",
         "status": "running"
     }

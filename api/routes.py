@@ -8,7 +8,7 @@ from core.exceptions import DocumentProcessingError, QAServiceError
 
 logger = logging.getLogger(__name__)
 
-qa_router = APIRouter(prefix="/hackrx", tags=["Question Answering"])
+qa_router = APIRouter(prefix="/hackrx", tags=["hackrx"])
 
 # Dependency to get services
 async def get_document_service() -> DocumentService:
@@ -26,7 +26,7 @@ async def get_qa_service() -> QAService:
 @qa_router.post("/run", response_model=QuestionAnswerResponse)
 async def run_qa(
     request: QuestionAnswerRequest,
-    # token: str = Depends(verify_token),
+    token: str = Depends(verify_token),
     document_service: DocumentService = Depends(get_document_service),
     qa_service: QAService = Depends(get_qa_service)
 ):
