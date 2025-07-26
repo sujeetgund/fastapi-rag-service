@@ -34,7 +34,7 @@ class DocumentService:
             self.embeddings = GoogleGenerativeAIEmbeddings(
                 model=settings.GOOGLE_EMBEDDING_MODEL,
                 google_api_key=settings.GOOGLE_API_KEY,
-                task_type="QUESTION_ANSWERING"
+                task_type="QUESTION_ANSWERING",
             )
 
             # Initialize text splitter
@@ -56,19 +56,32 @@ class DocumentService:
 
     def extract_documents_from_pdf(self, pdf_url: str) -> List[Document]:
         """Extract documents from PDF URL"""
-        try:
-            resp = requests.get(pdf_url)
-            resp.raise_for_status()
 
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-                f.write(resp.content)
-                tmp_path = f.name
-            self.document_loader = PyPDFLoader(tmp_path)
+        try:
+            # Try to load PDF directly from URL
+            logger.info(f"Loading PDF directly from URL: {pdf_url}")
+            self.document_loader = PyPDFLoader(pdf_url)
             documents = self.document_loader.load()
             if not documents:
                 raise DocumentProcessingError("No documents loaded from PDF")
             return documents
+        except Exception as direct_load_error:
+            # Fallback: download PDF and load from local file
+            logger.warning(f"Direct loading failed! Attempting to download PDF...")
 
+            resp = requests.get(pdf_url)
+            resp.raise_for_status()
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+                f.write(resp.content)
+                tmp_path = f.name
+
+            self.document_loader = PyPDFLoader(tmp_path)
+            documents = self.document_loader.load()
+
+            if not documents:
+                raise DocumentProcessingError("No documents loaded from PDF (fallback)")
+
+            return documents
         except Exception as e:
             raise DocumentProcessingError(f"Error processing PDF: {str(e)}")
 
