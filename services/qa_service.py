@@ -1,3 +1,4 @@
+import time
 from typing import List
 import logging
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -76,12 +77,24 @@ class QAService:
     ) -> List[str]:
         """Answer questions using the vector store"""
         try:
+            # qa_chain = RetrievalQA.from_chain_type(
+            #     llm=self.llm,
+            #     chain_type="stuff",
+            #     retriever=vectorstore.as_retriever(
+            #         search_kwargs={"k": settings.MAX_RELEVANT_CHUNKS}
+            #     ),
+            #     chain_type_kwargs={"prompt": self.qa_prompt},
+            #     return_source_documents=False,
+            # )
+
+            start_time = time.time()
+
             # Create output parser
             parser = StrOutputParser()
 
             # Create retriever from vector store
             retriever = vectorstore.as_retriever(
-                search_type="mmr", search_kwargs={"k": 6, "lambda_mult": 0.25}
+                search_type="mmr", search_kwargs={"k": 5}
             )
 
             # Create retrieval QA chain
@@ -93,15 +106,11 @@ class QAService:
             )
             qa_chain = parallel_chain | self.qa_prompt | self.llm | parser
 
-            # qa_chain = RetrievalQA.from_chain_type(
-            #     llm=self.llm,
-            #     chain_type="stuff",
-            #     retriever=vectorstore.as_retriever(
-            #         search_kwargs={"k": settings.MAX_RELEVANT_CHUNKS}
-            #     ),
-            #     chain_type_kwargs={"prompt": self.qa_prompt},
-            #     return_source_documents=False,
-            # )
+            print(
+                "=" * 60,
+                f"\nTime taken to create QA chain: {time.time() - start_time:.2f} seconds\n",
+                "=" * 60,
+            )
 
             answers = []
             for question in questions:
@@ -109,6 +118,7 @@ class QAService:
 
                 try:
                     # Get answer from QA chain
+                    start_time = time.time()
                     result = await qa_chain.ainvoke(question)
                     answer = result
 
@@ -122,6 +132,12 @@ class QAService:
                     logger.error(f"Error answering question '{question}': {e}")
                     answers.append(
                         "Sorry, I encountered an error while processing this question."
+                    )
+                finally:
+                    print(
+                        "=" * 60,
+                        f"\nTime taken to answer question '{question[:50]}...': {time.time() - start_time:.2f} seconds\n",
+                        "=" * 60,
                     )
 
             return answers

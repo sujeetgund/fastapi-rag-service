@@ -1,8 +1,6 @@
-import httpx
-import PyPDF2
-import io
-from typing import List, Tuple, Optional
+from typing import List
 import logging
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -11,9 +9,10 @@ from core.config import settings
 from core.exceptions import DocumentProcessingError
 
 from uuid import uuid4
-from langchain_community.document_loaders import PyPDFLoader
 import tempfile
 import requests
+import time
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +34,7 @@ class DocumentService:
             self.embeddings = GoogleGenerativeAIEmbeddings(
                 model=settings.GOOGLE_EMBEDDING_MODEL,
                 google_api_key=settings.GOOGLE_API_KEY,
+                task_type="QUESTION_ANSWERING"
             )
 
             # Initialize text splitter
@@ -54,20 +54,6 @@ class DocumentService:
         self.document_cache.clear()
         logger.info("Document service cleaned up")
 
-    async def download_pdf(self, url: str) -> bytes:
-        """Download PDF from URL"""
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            try:
-                response = await client.get(url)
-                response.raise_for_status()
-                return response.content
-            except httpx.RequestError as e:
-                raise DocumentProcessingError(f"Error downloading document: {str(e)}")
-            except httpx.HTTPStatusError as e:
-                raise DocumentProcessingError(
-                    f"HTTP error downloading document: {str(e)}"
-                )
-
     def extract_documents_from_pdf(self, pdf_url: str) -> List[Document]:
         """Extract documents from PDF URL"""
         try:
@@ -82,20 +68,6 @@ class DocumentService:
             if not documents:
                 raise DocumentProcessingError("No documents loaded from PDF")
             return documents
-
-            # pdf_file = io.BytesIO(pdf_content)
-            # pdf_reader = PyPDF2.PdfReader(pdf_file)
-
-            # text = ""
-            # for page in pdf_reader.pages:
-            #     page_text = page.extract_text()
-            #     if page_text:
-            #         text += page_text + "\n"
-
-            # if not text.strip():
-            #     raise DocumentProcessingError("No text content found in the PDF")
-
-            # return text.strip()
 
         except Exception as e:
             raise DocumentProcessingError(f"Error processing PDF: {str(e)}")
@@ -113,41 +85,53 @@ class DocumentService:
             )
 
         try:
-            # Download and extract text
-            # logger.info(f"Downloading document from {doc_url}")
-            # pdf_content = await self.download_pdf(doc_url)
-
+            # Extract documents from PDF
             logger.info("Extracting documents from PDF")
+            start_time = time.time()
             documents = self.extract_documents_from_pdf(doc_url)
+            print(
+                "=" * 60,
+                f"\nTime taken to extract documents: {time.time() - start_time:.2f} seconds\n",
+                "=" * 60,
+            )
 
             # Split text into chunks
             logger.info("Creating text chunks")
+            start_time = time.time()
             text_chunks = self.text_splitter.split_documents(documents)
+            print(
+                "=" * 60,
+                f"\nTime taken to create text chunks: {time.time() - start_time:.2f} seconds\n",
+                "=" * 60,
+            )
 
             if not text_chunks:
                 raise DocumentProcessingError("No text chunks created from document")
 
-            # Create documents
-            # documents = [
-            #     Document(
-            #         page_content=chunk, metadata={"source": doc_url, "chunk_id": i}
-            #     )
-            #     for i, chunk in enumerate(text_chunks)
-            # ]
-
             # Create vector store
             logger.info("Creating vector store")
+            start_time = time.time()
             vectorstore = FAISS.from_documents(
                 documents=documents, embedding=self.embeddings
+            )
+            print(
+                "=" * 60,
+                f"\nTime taken to create vector store: {time.time() - start_time:.2f} seconds\n",
+                "=" * 60,
             )
 
             # Cache the result
             if settings.ENABLE_CACHE:
                 logger.info("Saving vector store to cache")
-
+                start_time = time.time()
                 vectorstore_name = f"vectorstore_{uuid4()}"
                 vectorstore.save_local(vectorstore_name)
                 self.document_cache[doc_url] = vectorstore_name
+                print(
+                    "=" * 60,
+                    f"\nTime taken to cache vector store: {time.time() - start_time:.2f} seconds\n",
+                    "=" * 60,
+                )
 
             logger.info("Document processing completed successfully")
             return vectorstore

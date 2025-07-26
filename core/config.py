@@ -1,6 +1,6 @@
-from pydantic_settings import BaseSettings
 import os
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
 load_dotenv()
 
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     MAX_RELEVANT_CHUNKS: int = 5
 
     # Cache Configuration
-    ENABLE_CACHE: bool = True
+    ENABLE_CACHE: bool = False
     CACHE_TTL: int = 600  # 10 minutes
 
     class Config:
