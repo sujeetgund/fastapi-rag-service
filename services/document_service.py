@@ -69,11 +69,17 @@ class DocumentService:
             # Fallback: download PDF and load from local file
             logger.warning(f"Direct loading failed! Attempting to download PDF...")
 
+            start_time = time.time()
             resp = requests.get(pdf_url)
             resp.raise_for_status()
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
                 f.write(resp.content)
                 tmp_path = f.name
+            print(
+                "=" * 60,
+                f"\nTime taken to download PDF: {time.time() - start_time:.2f} seconds\n",
+                "=" * 60,
+            )
 
             self.document_loader = PyPDFLoader(tmp_path)
             documents = self.document_loader.load()

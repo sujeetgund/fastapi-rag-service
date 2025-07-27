@@ -112,33 +112,39 @@ class QAService:
                 "=" * 60,
             )
 
-            answers = []
-            for question in questions:
-                logger.info(f"Processing question: {question[:50]}...")
+            start_time = time.time()
+            answers = await qa_chain.abatch(questions)
+            print(
+                "=" * 60,
+                f"\nTime taken to answer questions: {time.time() - start_time:.2f} seconds\n",
+                "=" * 60,
+            )
+            # for question in questions:
+            #     logger.info(f"Processing question: {question[:50]}...")
 
-                try:
-                    # Get answer from QA chain
-                    start_time = time.time()
-                    result = await qa_chain.ainvoke(question)
-                    answer = result
+            #     try:
+            #         # Get answer from QA chain
+            #         start_time = time.time()
+            #         result = await qa_chain.ainvoke(question)
+            #         answer = result
 
-                    # Clean up the answer
-                    if not answer:
-                        answer = "The information requested is not available in the provided document."
+            #         # Clean up the answer
+            #         if not answer:
+            #             answer = "The information requested is not available in the provided document."
 
-                    answers.append(answer)
+            #         answers.append(answer)
 
-                except Exception as e:
-                    logger.error(f"Error answering question '{question}': {e}")
-                    answers.append(
-                        "Sorry, I encountered an error while processing this question."
-                    )
-                finally:
-                    print(
-                        "=" * 60,
-                        f"\nTime taken to answer question '{question[:50]}...': {time.time() - start_time:.2f} seconds\n",
-                        "=" * 60,
-                    )
+            #     except Exception as e:
+            #         logger.error(f"Error answering question '{question}': {e}")
+            #         answers.append(
+            #             "Sorry, I encountered an error while processing this question."
+            #         )
+            #     finally:
+            #         print(
+            #             "=" * 60,
+            #             f"\nTime taken to answer question '{question[:50]}...': {time.time() - start_time:.2f} seconds\n",
+            #             "=" * 60,
+            #         )
 
             return answers
 
