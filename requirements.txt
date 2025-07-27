@@ -10,3 +10,4 @@ faiss-cpu
 python-multipart
 python-dotenv
 pypdf
+PyMuPDF

@@ -106,25 +106,19 @@ class QAService:
             )
             qa_chain = parallel_chain | self.qa_prompt | self.llm | parser
 
-            print(
-                "=" * 60,
-                f"\nTime taken to create QA chain: {time.time() - start_time:.2f} seconds\n",
-                "=" * 60,
-            )
-
             start_time = time.time()
             answers = await qa_chain.abatch(questions)
-            print(
-                "=" * 60,
-                f"\nTime taken to answer questions: {time.time() - start_time:.2f} seconds\n",
-                "=" * 60,
+            logger.info(
+                f"Time taken to answer questions: {time.time() - start_time:.2f} seconds"
             )
+
+            # answers = []
             # for question in questions:
             #     logger.info(f"Processing question: {question[:50]}...")
+            #     start_time = time.time()
 
             #     try:
             #         # Get answer from QA chain
-            #         start_time = time.time()
             #         result = await qa_chain.ainvoke(question)
             #         answer = result
 
@@ -140,10 +134,8 @@ class QAService:
             #             "Sorry, I encountered an error while processing this question."
             #         )
             #     finally:
-            #         print(
-            #             "=" * 60,
-            #             f"\nTime taken to answer question '{question[:50]}...': {time.time() - start_time:.2f} seconds\n",
-            #             "=" * 60,
+            #         logger.info(
+            #             f"Time taken to answer question '{question[:50]}...': {time.time() - start_time:.2f} seconds"
             #         )
 
             return answers
