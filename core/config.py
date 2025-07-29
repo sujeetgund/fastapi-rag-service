@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str
     GOOGLE_MODEL_NAME: str
     GOOGLE_EMBEDDING_MODEL: str
+    
+    # Langsmith Configuration
+    LANGSMITH_API_KEY: str
+    LANGSMITH_TRACING: str
+    LANGSMITH_ENDPOINT: str
+    LANGSMITH_PROJECT: str
 
     # Document Processing
     CHUNK_SIZE: int = 1000

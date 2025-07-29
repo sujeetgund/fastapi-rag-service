@@ -14,6 +14,8 @@ from langchain_core.runnables import (
 )
 from langchain_core.output_parsers import StrOutputParser
 
+from langsmith import traceable, Client
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +37,9 @@ class QAService:
                 raise ValueError("GOOGLE_API_KEY is required")
 
             self.llm = ChatGoogleGenerativeAI(
-                model=settings.GOOGLE_MODEL_NAME, google_api_key=settings.GOOGLE_API_KEY
+                model=settings.GOOGLE_MODEL_NAME,
+                google_api_key=settings.GOOGLE_API_KEY,
+                verbose=True,
             )
 
             # Create QA prompt template
@@ -72,21 +76,12 @@ class QAService:
         """Cleanup resources"""
         logger.info("QA service cleaned up")
 
+    @traceable(run_type="chain", project_name=settings.LANGSMITH_PROJECT)
     async def answer_questions(
         self, vectorstore: FAISS, questions: List[str]
     ) -> List[str]:
         """Answer questions using the vector store"""
         try:
-            # qa_chain = RetrievalQA.from_chain_type(
-            #     llm=self.llm,
-            #     chain_type="stuff",
-            #     retriever=vectorstore.as_retriever(
-            #         search_kwargs={"k": settings.MAX_RELEVANT_CHUNKS}
-            #     ),
-            #     chain_type_kwargs={"prompt": self.qa_prompt},
-            #     return_source_documents=False,
-            # )
-
             start_time = time.time()
 
             # Create output parser
@@ -107,36 +102,11 @@ class QAService:
             qa_chain = parallel_chain | self.qa_prompt | self.llm | parser
 
             start_time = time.time()
+
             answers = await qa_chain.abatch(questions)
             logger.info(
                 f"Time taken to answer questions: {time.time() - start_time:.2f} seconds"
             )
-
-            # answers = []
-            # for question in questions:
-            #     logger.info(f"Processing question: {question[:50]}...")
-            #     start_time = time.time()
-
-            #     try:
-            #         # Get answer from QA chain
-            #         result = await qa_chain.ainvoke(question)
-            #         answer = result
-
-            #         # Clean up the answer
-            #         if not answer:
-            #             answer = "The information requested is not available in the provided document."
-
-            #         answers.append(answer)
-
-            #     except Exception as e:
-            #         logger.error(f"Error answering question '{question}': {e}")
-            #         answers.append(
-            #             "Sorry, I encountered an error while processing this question."
-            #         )
-            #     finally:
-            #         logger.info(
-            #             f"Time taken to answer question '{question[:50]}...': {time.time() - start_time:.2f} seconds"
-            #         )
 
             return answers
 
