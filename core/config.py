@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # API Configuration
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Document Q&A API"
+    ENV: str = "local"
 
     # Authentication
     BEARER_TOKEN: str = (
