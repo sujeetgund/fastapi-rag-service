@@ -181,7 +181,7 @@ class DocumentService:
         return "\n".join(processed_lines)
 
     def _create_overlap_content(
-        prev_content: str, current_content: str, page_num: int
+        self, prev_content: str, current_content: str, page_num: int
     ) -> str:
         """
         Create overlap content between adjacent pages for better context in RAG.
@@ -220,23 +220,18 @@ class DocumentService:
     def load_pdf_for_rag(
         self,
         file_path: str,
-        table_extraction_kwargs: Dict[str, Any] = None,
-        chunk_overlap_pages: bool = False,
+        chunk_overlap_pages: bool = True,
         include_page_numbers: bool = True,
         table_format: str = "markdown",
     ) -> List[Document]:
 
         start_time = time.time()
-        
+
         try:
             # Initialize the PDFPlumberLoader with table extraction enabled
             loader_kwargs = {
                 "extract_images": False,  # Focus on text and tables for RAG
             }
-
-            # Add table extraction parameters if provided
-            if table_extraction_kwargs:
-                loader_kwargs.update(table_extraction_kwargs)
 
             # Load the PDF
             logger.info(f"Loading PDF from: {file_path}")
@@ -244,16 +239,15 @@ class DocumentService:
 
             # Extract documents
             raw_documents = loader.load()
-            logger.info(f"Extracted {len(raw_documents)} pages from PDF")
             logger.info(
-                f"PDF loading completed in {time.time() - start_time:.2f} seconds"
+                f"Extracted {len(raw_documents)} pages from PDF in {time.time() - start_time:.2f} seconds"
             )
 
             # Process documents for RAG optimization
             processed_documents = []
-            
+
             start_time = time.time()
-            
+
             for i, doc in enumerate(raw_documents):
                 page_num = i + 1
 
@@ -291,7 +285,9 @@ class DocumentService:
                 # Add context overlap from adjacent pages if requested
                 if chunk_overlap_pages and i > 0:
                     overlap_content = self._create_overlap_content(
-                        raw_documents[i - 1].page_content, content, page_num
+                        prev_content=raw_documents[i - 1].page_content,
+                        current_content=content,
+                        page_num=page_num,
                     )
                     if overlap_content:
                         overlap_doc = Document(
@@ -409,18 +405,17 @@ class DocumentService:
         try:
             # Extract documents from PDF
             logger.info("Extracting documents from PDF")
-            
-            if(settings.ENV == "local"):
-                # Download the PDF to a temporary file
-                resp = requests.get(doc_url)
-                resp.raise_for_status()
-                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-                    f.write(resp.content)
-                    tmp_path = f.name
-                    documents = self.load_pdf_for_rag(tmp_path)
-            else:
-                # Use the fast extraction method for production
-                documents = self.load_pdf_for_rag(doc_url)
+
+            # for local, download the PDF to a temporary file
+            # resp = requests.get(doc_url)
+            # resp.raise_for_status()
+            # with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            #     f.write(resp.content)
+            #     tmp_path = f.name
+            #     documents = self.load_pdf_for_rag(tmp_path)
+
+            # for production, use the following line instead
+            documents = self.load_pdf_for_rag(doc_url)
 
             # Split text into chunks
             # logger.info("Creating text chunks")

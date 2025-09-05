@@ -45,23 +45,20 @@ class QAService:
             # Create QA prompt template
             self.qa_prompt = PromptTemplate(
                 template="""
-                You are an expert AI assistant for answering questions about company policies. Your task is to answer the user's question using ONLY the provided policy document excerpts.
+                You are a document reader. Your ONLY job is to find answers in the text below. You cannot use any other knowledge.
 
-                Follow these rules STRICTLY:
-                1. Base your answer entirely on the text provided in the "Context" section.
-                2. Do not make assumptions or infer information that is not explicitly stated in the context.
-                3. If the context does not contain the answer to the question, you MUST state: "The provided policy documents do not contain information on this topic."
-                4. Be concise and direct in your answer.
-                5. Don't include any additional information or explanations beyond the answer to the question.
+                CRITICAL CONSTRAINTS:
+                - Answer ONLY from the context provided
+                - If not found in context: "Information not found in documents"
+                - No external knowledge allowed
+                - No assumptions or inferences
 
-                Context:
-                ---
+                Context from documents:
                 {context}
-                ---
 
-                Question: {question}
+                User question: {question}
 
-                Answer:
+                Document-based answer:
                 """,
                 input_variables=["context", "question"],
             )
